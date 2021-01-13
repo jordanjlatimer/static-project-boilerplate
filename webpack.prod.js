@@ -1,52 +1,46 @@
 const path = require("path");
+const fs = require("fs")
+const { CleanWebpackPlugin } = require("clean-webpack-plugin")
+const MiniCssWebpackPlugin = require("mini-css-extract-plugin")
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 const CompressionPlugin = require("compression-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin")
+
+//Find out what all the pages are.
+const pageNames = fs.readdirSync("./src").filter(filename => path.extname(filename).toLowerCase() === ".html").map(name => path.basename(name, ".html"))
+
+let pages = {entries: {}, pluginObjects: []} 
+pageNames.forEach(name => {
+  pages.entries[name] = "./src/js/" + name + ".js";
+  pages.pluginObjects.push(new HtmlWebpackPlugin({
+    template: "./src/" + name + ".html",
+    filename: name + ".html",
+    chunks: [name]
+  }))
+})
 
 module.exports = {
   mode: "production",
-  entry: "./src/index.tsx",
+  entry: pages.entries,
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].js",
-    library: "umd",
   },
   resolve: {
-    extensions: [".tsx", ".js"],
-    alias: {
-      react: path.resolve("./node_modules/react"),
-      "react-dom": path.resolve("./node_modules/react-dom")
-    }
+    extensions: [".js", ".sass"],
   },
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
-        exclude: /node_modules/,
-        use: [
-          {
-            loader: "ts-loader",
-            options: {
-              transpileOnly: true
-            }
-          }
-        ]
-      },
-      {
         test: /\.sass?$/,
         exclude: /node_modules/,
         use: [
-          { 
-            loader: "style-loader" 
-          }, 
-          { 
-            loader: "css-loader" 
-          }, 
-          { 
-            loader: "sass-loader" 
-          }
+          MiniCssWebpackPlugin.loader,
+          "css-loader",
+          "sass-loader" 
         ],
-      },
+      }
     ],
   },
   optimization: {
@@ -54,15 +48,23 @@ module.exports = {
     mangleExports: "size"
   },
   plugins: [
-    new HtmlWebpackPlugin({
-      template: "src/index.html",
+    ...pages.pluginObjects,
+    new CleanWebpackPlugin(),
+    new MiniCssWebpackPlugin(),
+    new CompressionPlugin(),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "assets/*",
+          context: "./src",
+          noErrorOnMissing: true
+        }
+      ]
     }),
     new BundleAnalyzerPlugin({
       analyzerMode: "static",
-      reportFilename: "../dev/report.html",
-      openAnalyzer: false,
+      reportFilename: "../dev/report.html"
     }),
-    new CompressionPlugin(),
   ],
   performance: {
     hints: "warning"
