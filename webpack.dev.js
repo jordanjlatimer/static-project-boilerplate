@@ -1,18 +1,28 @@
 const path = require("path");
-const fs = require("fs")
+const fs = require("fs");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
-const pageNames = fs.readdirSync("./src").filter(filename => path.extname(filename).toLowerCase() === ".html").map(name => path.basename(name, ".html"))
+let pages = {
+  entries: {},
+  pluginObjects: [],
+};
 
-let pages = {entries: {}, pluginObjects: []} 
-pageNames.forEach(name => {
-  pages.entries[name] = "./src/js/" + name + ".js";
-  pages.pluginObjects.push(new HtmlWebpackPlugin({
-    template: "./src/" + name + ".html",
-    filename: name + ".html",
-    chunks: [name]
-  }))
-})
+/*Get all slam pages in the src directory*/
+const pageNames = fs
+  .readdirSync(path.resolve(__dirname, "src/pages"))
+  .filter(filename => path.extname(filename).toLowerCase() === ".js")
+  .map(name => path.basename(name, ".js"))
+  .forEach(name => {
+    /*Create an object with the entry path and plugin objects for each page.*/
+    pages.entries[name] = path.resolve(__dirname, "src/js/", name + ".js");
+    pages.pluginObjects.push(
+      new HtmlWebpackPlugin({
+        template: path.resolve(__dirname, "src/pages/" + name + ".js"),
+        filename: name + ".html",
+        chunks: [name],
+      })
+    );
+  });
 
 module.exports = {
   mode: "development",
@@ -22,18 +32,14 @@ module.exports = {
     filename: "[name].js",
   },
   resolve: {
-    extensions: [".js", ".css", ".sass"],
+    extensions: [".js", ".sass"],
   },
   module: {
     rules: [
       {
         test: /\.sass?$/,
         exclude: /node_modules/,
-        use: [
-          "style-loader",
-          "css-loader",
-          "sass-loader"
-        ]
+        use: ["style-loader", "css-loader", "sass-loader"],
       },
     ],
   },
@@ -42,16 +48,15 @@ module.exports = {
   },
   devtool: "eval",
   devServer: {
-    contentBase: path.join(__dirname, "./src"),
+    contentBase: path.join(__dirname, "dist"),
+    watchContentBase: true,
+    host: "0.0.0.0",
     port: 3000,
-    inline: true,
     open: true,
-    stats: "minimal"
+    stats: "minimal",
   },
   performance: {
-    hints: false
+    hints: false,
   },
-  plugins: [
-    ...pages.pluginObjects
-  ]
+  plugins: [...pages.pluginObjects],
 };
