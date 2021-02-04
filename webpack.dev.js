@@ -48,7 +48,7 @@ module.exports = {
   },
   devtool: "eval",
   devServer: {
-    contentBase: path.join(__dirname, "dist"),
+    contentBase: path.join(__dirname, "src"),
     watchContentBase: true,
     host: "0.0.0.0",
     port: 3000,
